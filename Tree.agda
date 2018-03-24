@@ -3,6 +3,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; subst; sym
 
 open import Level using (_⊔_)
 open import Data.Maybe using (Maybe)
+open import Function using (const)
 
 module Tree
   {k r v} (Key : Set k) {_<_ : Rel Key r}
@@ -29,3 +30,6 @@ insertWith : (key : Key) -> V key -> (V key -> V key -> V key) -> Tree -> Tree
 insertWith key value update (tree avl₁) with Bounded.insertWith key value update (open-bounds key) avl₁
 ... | +0 avl₂ = tree avl₂
 ... | +1 avl₂ = tree avl₂
+
+insert : (key : Key) -> V key -> Tree -> Tree
+insert key value = insertWith key value const
