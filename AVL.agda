@@ -18,24 +18,6 @@ module AVL
 open import Key Key is-strict-total-order
 open IsStrictTotalOrder is-strict-total-order
 
-infix 4 _⊔_↦_
-
-data _⊔_↦_ : ℕ → ℕ → ℕ → Set where
-  ↦l : ∀ {n} → suc n ⊔ n     ↦ suc n
-  ↦b : ∀ {n} →     n ⊔ n     ↦ n
-  ↦r : ∀ {n} →     n ⊔ suc n ↦ suc n
-
-h⊔l↦h : ∀ {l r h} -> l ⊔ r ↦ h -> h ⊔ l ↦ h
-h⊔l↦h ↦l = ↦b
-h⊔l↦h ↦b = ↦b
-h⊔l↦h ↦r = ↦l
-
-r⊔h↦h : ∀ {l r h} -> l ⊔ r ↦ h -> r ⊔ h ↦ h
-r⊔h↦h ↦l = ↦r
-r⊔h↦h ↦b = ↦b
-r⊔h↦h ↦r = ↦b
-
-
 infix 4 max_↦_
 data max_↦_ : ℕ × ℕ -> ℕ -> Set where
   ↦l : ∀ {n} → max (suc n , n) ↦ suc n
@@ -62,10 +44,6 @@ data AVL (l-bound r-bound : Bound) : (height : ℕ) -> Set (k ⊔ v ⊔ r) where
       (right   : AVL [ key ] r-bound h-right)
       (balance : max (h-left , h-right) ↦ h)
     → AVL l-bound r-bound (suc h)
-
-
-test : ℕ × ℕ
-test = (1 , 2)
 
 empty : ∀ {l-bound r-bound} -> l-bound <ᵇ r-bound -> AVL l-bound r-bound 0
 empty = Leaf
