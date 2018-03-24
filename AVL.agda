@@ -7,6 +7,7 @@ open import Relation.Binary.PropositionalEquality using
 open import Level using (_⊔_)
 open import Data.Nat using (ℕ; suc; _+_)
 open import Data.Maybe using (Maybe)
+open import Data.Product
 open Maybe
 
 module AVL
@@ -24,6 +25,33 @@ data _⊔_↦_ : ℕ → ℕ → ℕ → Set where
   ↦b : ∀ {n} →     n ⊔ n     ↦ n
   ↦r : ∀ {n} →     n ⊔ suc n ↦ suc n
 
+h⊔l↦h : ∀ {l r h} -> l ⊔ r ↦ h -> h ⊔ l ↦ h
+h⊔l↦h ↦l = ↦b
+h⊔l↦h ↦b = ↦b
+h⊔l↦h ↦r = ↦l
+
+r⊔h↦h : ∀ {l r h} -> l ⊔ r ↦ h -> r ⊔ h ↦ h
+r⊔h↦h ↦l = ↦r
+r⊔h↦h ↦b = ↦b
+r⊔h↦h ↦r = ↦b
+
+
+infix 4 max_↦_
+data max_↦_ : ℕ × ℕ -> ℕ -> Set where
+  ↦l : ∀ {n} → max (suc n , n) ↦ suc n
+  ↦b : ∀ {n} → max (n ,     n) ↦ n
+  ↦r : ∀ {n} → max (n , suc n) ↦ suc n
+
+max[h,l]↦h : ∀ {l r h} -> max (l , r) ↦ h -> max (h , l) ↦ h
+max[h,l]↦h ↦l = ↦b
+max[h,l]↦h ↦b = ↦b
+max[h,l]↦h ↦r = ↦l
+
+max[r,h]↦h : ∀ {l r h} -> max (l , r) ↦ h -> max (r , h) ↦ h
+max[r,h]↦h ↦l = ↦r
+max[r,h]↦h ↦b = ↦b
+max[r,h]↦h ↦r = ↦b
+
 data AVL (l-bound r-bound : Bound) : (height : ℕ) -> Set (k ⊔ v ⊔ r) where
   Leaf : l-bound <ᵇ r-bound -> AVL l-bound r-bound 0
   Node :
@@ -32,9 +60,12 @@ data AVL (l-bound r-bound : Bound) : (height : ℕ) -> Set (k ⊔ v ⊔ r) where
       (value   : V key)
       (left    : AVL l-bound [ key ] h-left)
       (right   : AVL [ key ] r-bound h-right)
-      (balance : h-left ⊔ h-right ↦ h)
+      (balance : max (h-left , h-right) ↦ h)
     → AVL l-bound r-bound (suc h)
 
+
+test : ℕ × ℕ
+test = (1 , 2)
 
 empty : ∀ {l-bound r-bound} -> l-bound <ᵇ r-bound -> AVL l-bound r-bound 0
 empty = Leaf
@@ -56,16 +87,6 @@ data Insert (l-bound r-bound : Bound) (height : ℕ) : Set (k ⊔ v ⊔ r) where
 postulate
   undefined : ∀ {a} {A : Set a} -> A
 
-h⊔l↦h : ∀ {l r h} -> l ⊔ r ↦ h -> h ⊔ l ↦ h
-h⊔l↦h ↦l = ↦b
-h⊔l↦h ↦b = ↦b
-h⊔l↦h ↦r = ↦l
-
-r⊔h↦h : ∀ {l r h} -> l ⊔ r ↦ h -> r ⊔ h ↦ h
-r⊔h↦h ↦l = ↦r
-r⊔h↦h ↦b = ↦b
-r⊔h↦h ↦r = ↦b
-
 balance-leftⁱ
   : ∀ {h-left h-right h}
       {l-bound r-bound}
@@ -73,7 +94,7 @@ balance-leftⁱ
     -> V key
     -> Insert l-bound [ key ] h-left
     -> AVL [ key ] r-bound h-right
-    -> h-left ⊔ h-right ↦ h
+    -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
 balance-leftⁱ key₁ value₁
   (+0 left₁) right₁ balance
@@ -87,8 +108,8 @@ balance-leftⁱ key₁ value₁
 balance-leftⁱ key₁ value₁
   (+1 (Node key₂ value₂ left₂ (Node key₃ value₃ left₃ right₃ bal) ↦r)) right₁ ↦l
   = +0 (Node key₃ value₃
-         (Node key₂ value₂ left₂ left₃ (h⊔l↦h bal))
-         (Node key₁ value₁ right₃ right₁ (r⊔h↦h bal))
+         (Node key₂ value₂ left₂ left₃ (max[h,l]↦h bal))
+         (Node key₁ value₁ right₃ right₁ (max[r,h]↦h bal))
          ↦b)
 balance-leftⁱ key₁ value₁
   (+1 left) right ↦b = +1 (Node key₁ value₁ left right ↦l)
@@ -102,7 +123,7 @@ balance-rightⁱ
     -> V key
     -> AVL l-bound [ key ] h-left
     -> Insert [ key ] r-bound h-right
-    -> h-left ⊔ h-right ↦ h
+    -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
 balance-rightⁱ = undefined
 
