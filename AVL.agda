@@ -19,25 +19,25 @@ module AVL
 open import Key Key is-strict-total-order
 open IsStrictTotalOrder is-strict-total-order
 
-infix 4 ∣_-_∣↦_
-data ∣_-_∣↦_ : ℕ -> ℕ -> ℕ -> Set where
-  ↦l : ∀ {h} → ∣ suc h - h ∣↦ suc h
-  ↦b : ∀ {h} → ∣ h   -   h ∣↦ h
-  ↦r : ∀ {h} → ∣ h - suc h ∣↦ suc h
+infix 4 max_↦_
+data max_↦_ : ℕ × ℕ -> ℕ -> Set where
+  ↦l : ∀ {n} → max (suc n , n) ↦ suc n
+  ↦b : ∀ {n} → max (n ,     n) ↦ n
+  ↦r : ∀ {n} → max (n , suc n) ↦ suc n
 
-∣h-l∣↦h : ∀ {l r h} -> ∣ l - r ∣↦ h -> ∣ h - l ∣↦ h
-∣h-l∣↦h ↦l = ↦b
-∣h-l∣↦h ↦b = ↦b
-∣h-l∣↦h ↦r = ↦l
+max[h,l]↦h : ∀ {l r h} -> max (l , r) ↦ h -> max (h , l) ↦ h
+max[h,l]↦h ↦l = ↦b
+max[h,l]↦h ↦b = ↦b
+max[h,l]↦h ↦r = ↦l
 
-∣r-h∣↦h : ∀ {l r h} -> ∣ l - r ∣↦ h -> ∣ r - h ∣↦ h
-∣r-h∣↦h ↦l = ↦r
-∣r-h∣↦h ↦b = ↦b
-∣r-h∣↦h ↦r = ↦b
+max[r,h]↦h : ∀ {l r h} -> max (l , r) ↦ h -> max (r , h) ↦ h
+max[r,h]↦h ↦l = ↦r
+max[r,h]↦h ↦b = ↦b
+max[r,h]↦h ↦r = ↦b
 
-∣[h-1]-h∣↦h : ∀ {h} -> ∣ pred h - h ∣↦ h
-∣[h-1]-h∣↦h {zero}  = ↦b
-∣[h-1]-h∣↦h {suc h} = ↦r
+max[h-1,h]↦h : ∀ {h} -> max (pred h , h) ↦ h
+max[h-1,h]↦h {zero}  = ↦b
+max[h-1,h]↦h {suc h} = ↦r
 
 data AVL (l-bound r-bound : Bound) : (height : ℕ) -> Set (k ⊔ v ⊔ r) where
   Leaf : l-bound <ᵇ r-bound -> AVL l-bound r-bound 0
@@ -47,7 +47,7 @@ data AVL (l-bound r-bound : Bound) : (height : ℕ) -> Set (k ⊔ v ⊔ r) where
       (value   : V key)
       (left    : AVL l-bound [ key ] h-left)
       (right   : AVL [ key ] r-bound h-right)
-      (balance : ∣ h-left - h-right ∣↦ h)
+      (balance : max (h-left , h-right) ↦ h)
     → AVL l-bound r-bound (suc h)
 
 empty : ∀ {l-bound r-bound} -> l-bound <ᵇ r-bound -> AVL l-bound r-bound 0
@@ -81,7 +81,7 @@ balance-leftⁱ
     -> V key
     -> Insert l-bound [ key ] h-left
     -> AVL [ key ] r-bound h-right
-    -> ∣ h-left - h-right ∣↦ h
+    -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
 balance-leftⁱ key₁ value₁ (+0 left₁) right₁ balance = +0 (Node key₁ value₁ left₁ right₁ balance)
 balance-leftⁱ key₁ value₁ (+1 left) right ↦r = +0 (Node key₁ value₁ left right ↦b)
@@ -93,8 +93,8 @@ balance-leftⁱ key₁ value₁ (+1 (Node key₂ value₂ left₂ right₂ ↦b)
 balance-leftⁱ key₁ value₁
   (+1 (Node key₂ value₂ left₂ (Node key₃ value₃ left₃ right₃ bal) ↦r)) right₁ ↦l
   = +0 (Node key₃ value₃
-         (Node key₂ value₂ left₂ left₃ (∣h-l∣↦h bal))
-         (Node key₁ value₁ right₃ right₁ (∣r-h∣↦h bal))
+         (Node key₂ value₂ left₂ left₃ (max[h,l]↦h bal))
+         (Node key₁ value₁ right₃ right₁ (max[r,h]↦h bal))
          ↦b)
 
 balance-rightⁱ
@@ -104,7 +104,7 @@ balance-rightⁱ
     -> V key
     -> AVL l-bound [ key ] h-left
     -> Insert [ key ] r-bound h-right
-    -> ∣ h-left - h-right ∣↦ h
+    -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
 balance-rightⁱ key₁ value₁ left₁ (+0 right₁) balance = +0 (Node key₁ value₁ left₁ right₁ balance)
 balance-rightⁱ key₁ value₁ left₁ (+1 right₁) ↦l = +0 (Node key₁ value₁ left₁ right₁ ↦b)
@@ -126,8 +126,8 @@ balance-rightⁱ key₁ value₁ left₁ (+1 (Node key₂ value₂ left₂ right
 balance-rightⁱ key₁ value₁ left₁
   (+1 (Node key₂ value₂ (Node key₃ value₃ left₃ right₃ bal) right₂ ↦l)) ↦r
   = +0 (Node key₃ value₃
-         (Node key₁ value₁ left₁ left₃ (∣h-l∣↦h bal))
-         (Node key₂ value₂ right₃ right₂ (∣r-h∣↦h bal))
+         (Node key₁ value₁ left₁ left₃ (max[h,l]↦h bal))
+         (Node key₂ value₂ right₃ right₂ (max[r,h]↦h bal))
          ↦b)
 
 insertWith
@@ -159,12 +159,12 @@ balance-leftᵈ
     -> V key
     -> Insert l-bound [ key ] (pred h-left)
     -> AVL [ key ] r-bound h-right
-    -> ∣ h-left - h-right ∣↦ h
+    -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound h
 balance-leftᵈ key₁ value₁ (+0 left₁) right₁ ↦l = +0 (Node key₁ value₁ left₁ right₁ ↦b)
-balance-leftᵈ key₁ value₁ (+0 left₁) right₁ ↦b = +1 (Node key₁ value₁ left₁ right₁ ∣[h-1]-h∣↦h)
+balance-leftᵈ key₁ value₁ (+0 left₁) right₁ ↦b = +1 (Node key₁ value₁ left₁ right₁ max[h-1,h]↦h)
 balance-leftᵈ key₁ value₁ (+0 left₁) (Node key₂ value₂ left₂ right₂ balance) ↦r
-  = +1 (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ {!!}) right₂ ↦l)
+  = {!!} -- +1 (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ {!!}) right₂ ↦l)
 balance-leftᵈ key₁ value₁ (+1 x) right₁ balance = undefined
 
 balance-rightᵈ
@@ -174,7 +174,7 @@ balance-rightᵈ
     -> V key
     -> AVL l-bound [ key ] h-left
     -> Insert [ key ] r-bound (pred h-right)
-    -> ∣ h-left - h-right ∣↦ h
+    -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound h
 balance-rightᵈ = undefined
 
@@ -193,7 +193,7 @@ balanceᵈ
        {l-bound m-bound r-bound}
     -> AVL l-bound m-bound h-left
     -> AVL m-bound r-bound h-right
-    -> ∣ h-left - h-right ∣↦ h
+    -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound h
 balanceᵈ (Leaf l-bound<m-bound) right ↦b = +0 (decrease-bound l-bound<m-bound right)
 balanceᵈ (Leaf l-bound<m-bound) right ↦r = +0 (decrease-bound l-bound<m-bound right)
