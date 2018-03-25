@@ -68,8 +68,8 @@ lookup key₁ (Node key₂ value left right balance) with compare key₁ key₂
 ... | tri> _ _ _ = lookup key₁ right
 
 data Insert (l-bound r-bound : Bound) (height : ℕ) : Set (k ⊔ v ⊔ r) where
-  +0 : AVL l-bound r-bound height       -> Insert l-bound r-bound height
-  +1 : AVL l-bound r-bound (suc height) -> Insert l-bound r-bound height
+  +zero : AVL l-bound r-bound height       -> Insert l-bound r-bound height
+  +one  : AVL l-bound r-bound (suc height) -> Insert l-bound r-bound height
 
 postulate
   undefined : ∀ {a} {A : Set a} -> A
@@ -83,19 +83,19 @@ balance-leftⁱ
     -> AVL [ key ] r-bound h-right
     -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
-balance-leftⁱ key₁ value₁ (+0 left₁) right₁ balance = +0 (Node key₁ value₁ left₁ right₁ balance)
-balance-leftⁱ key₁ value₁ (+1 left) right ↦r = +0 (Node key₁ value₁ left right ↦b)
-balance-leftⁱ key₁ value₁ (+1 left) right ↦b = +1 (Node key₁ value₁ left right ↦l)
-balance-leftⁱ key₁ value₁ (+1 (Node key₂ value₂ left₂ right₂ ↦l)) right₁ ↦l
-  = +0 (Node key₂ value₂ left₂ (Node key₁ value₁ right₂ right₁ ↦b) ↦b)
-balance-leftⁱ key₁ value₁ (+1 (Node key₂ value₂ left₂ right₂ ↦b)) right₁ ↦l
-  = +1 (Node key₂ value₂ left₂ (Node key₁ value₁ right₂ right₁ ↦l) ↦r)
+balance-leftⁱ key₁ value₁ (+zero left₁) right₁ balance = +zero (Node key₁ value₁ left₁ right₁ balance)
+balance-leftⁱ key₁ value₁ (+one left) right ↦r = +zero (Node key₁ value₁ left right ↦b)
+balance-leftⁱ key₁ value₁ (+one left) right ↦b = +one (Node key₁ value₁ left right ↦l)
+balance-leftⁱ key₁ value₁ (+one (Node key₂ value₂ left₂ right₂ ↦l)) right₁ ↦l
+  = +zero (Node key₂ value₂ left₂ (Node key₁ value₁ right₂ right₁ ↦b) ↦b)
+balance-leftⁱ key₁ value₁ (+one (Node key₂ value₂ left₂ right₂ ↦b)) right₁ ↦l
+  = +one (Node key₂ value₂ left₂ (Node key₁ value₁ right₂ right₁ ↦l) ↦r)
 balance-leftⁱ key₁ value₁
-  (+1 (Node key₂ value₂ left₂ (Node key₃ value₃ left₃ right₃ bal) ↦r)) right₁ ↦l
-  = +0 (Node key₃ value₃
-         (Node key₂ value₂ left₂ left₃ (max[h,l]↦h bal))
-         (Node key₁ value₁ right₃ right₁ (max[r,h]↦h bal))
-         ↦b)
+  (+one (Node key₂ value₂ left₂ (Node key₃ value₃ left₃ right₃ bal) ↦r)) right₁ ↦l
+  = +zero (Node key₃ value₃
+            (Node key₂ value₂ left₂ left₃ (max[h,l]↦h bal))
+            (Node key₁ value₁ right₃ right₁ (max[r,h]↦h bal))
+            ↦b)
 
 balance-rightⁱ
   : ∀ {h-left h-right h}
@@ -106,13 +106,13 @@ balance-rightⁱ
     -> Insert [ key ] r-bound h-right
     -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
-balance-rightⁱ key₁ value₁ left₁ (+0 right₁) balance = +0 (Node key₁ value₁ left₁ right₁ balance)
-balance-rightⁱ key₁ value₁ left₁ (+1 right₁) ↦l = +0 (Node key₁ value₁ left₁ right₁ ↦b)
-balance-rightⁱ key₁ value₁ left₁ (+1 right₁) ↦b = +1 (Node key₁ value₁ left₁ right₁ ↦r)
-balance-rightⁱ key₁ value₁ left₁ (+1 (Node key₂ value₂ left₂ right₂ ↦r)) ↦r
-  = +0 (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ ↦b) right₂ ↦b)
-balance-rightⁱ key₁ value₁ left₁ (+1 (Node key₂ value₂ left₂ right₂ ↦b)) ↦r
-  = +1 (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ ↦r) right₂ ↦l)
+balance-rightⁱ key₁ value₁ left₁ (+zero right₁) bal = +zero (Node key₁ value₁ left₁ right₁ bal)
+balance-rightⁱ key₁ value₁ left₁ (+one right₁) ↦l = +zero (Node key₁ value₁ left₁ right₁ ↦b)
+balance-rightⁱ key₁ value₁ left₁ (+one right₁) ↦b = +one (Node key₁ value₁ left₁ right₁ ↦r)
+balance-rightⁱ key₁ value₁ left₁ (+one (Node key₂ value₂ left₂ right₂ ↦r)) ↦r
+  = +zero (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ ↦b) right₂ ↦b)
+balance-rightⁱ key₁ value₁ left₁ (+one (Node key₂ value₂ left₂ right₂ ↦b)) ↦r
+  = +one (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ ↦r) right₂ ↦l)
 --       1
 --      / \
 --     /   \
@@ -124,11 +124,11 @@ balance-rightⁱ key₁ value₁ left₁ (+1 (Node key₂ value₂ left₂ right
 --    /   \
 --    L3  R3
 balance-rightⁱ key₁ value₁ left₁
-  (+1 (Node key₂ value₂ (Node key₃ value₃ left₃ right₃ bal) right₂ ↦l)) ↦r
-  = +0 (Node key₃ value₃
-         (Node key₁ value₁ left₁ left₃ (max[h,l]↦h bal))
-         (Node key₂ value₂ right₃ right₂ (max[r,h]↦h bal))
-         ↦b)
+  (+one (Node key₂ value₂ (Node key₃ value₃ left₃ right₃ bal) right₂ ↦l)) ↦r
+  = +zero (Node key₃ value₃
+            (Node key₁ value₁ left₁ left₃ (max[h,l]↦h bal))
+            (Node key₂ value₂ right₃ right₂ (max[r,h]↦h bal))
+            ↦b)
 
 insertWith
   : ∀ {h} {l-bound r-bound}
@@ -140,14 +140,14 @@ insertWith
    -> Insert l-bound r-bound h
 insertWith key₁ value₁ update
   l-bound<key<r-bound (Leaf l-bound<r-bound)
-  = +1 (singleton key₁ value₁ l-bound<key<r-bound)
+  = +one (singleton key₁ value₁ l-bound<key<r-bound)
 insertWith key₁ value₁ update
   (l-bound<key <×< key<r-bound) (Node key₂ value₂ left₁ right₁ balance) with compare key₁ key₂
 ... | tri< key₁<key₂ _ _
     = balance-leftⁱ key₂ value₂ left₂ right₁ balance
     where left₂ = insertWith key₁ value₁ update (l-bound<key <×< [ key₁<key₂ ]) left₁
 ... | tri≈ _ key₁≡key₂ _ rewrite sym key₁≡key₂
-    = +0 (Node key₁ (update value₁ value₂) left₁ right₁ balance)
+    = +zero (Node key₁ (update value₁ value₂) left₁ right₁ balance)
 ... | tri> _ _ key₂<key₁
     = balance-rightⁱ key₂ value₂ left₁ right₂ balance
     where right₂ = insertWith key₁ value₁ update ([ key₂<key₁ ] <×< key<r-bound) right₁
@@ -196,9 +196,9 @@ balance-rightᵈ {h-right = zero} key₁ value₁ left₁ (-zero right₁) balan
 balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-zero right₁) balance
   = -zero (Node key₁ value₁ left₁ right₁ balance)
 balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-one right₁) ↦l
-  with balance-leftⁱ key₁ value₁ (+1 left₁) right₁ ↦l
-... | +0 avl = -one  avl
-... | +1 avl = -zero avl
+  with balance-leftⁱ key₁ value₁ (+one left₁) right₁ ↦l
+... | +zero res = -one  res
+... | +one res  = -zero res
 balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-one right₁) ↦b
   = -zero (Node key₁ value₁ left₁ right₁ ↦l)
 balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-one right₁) ↦r
