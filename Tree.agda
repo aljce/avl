@@ -3,6 +3,9 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; subst; sym
 
 open import Level using (_⊔_)
 open import Data.Maybe using (Maybe)
+open import Data.Product using (Σ)
+open Σ
+open import Data.List using (List; foldr)
 open import Function using (const)
 
 module Tree
@@ -33,3 +36,6 @@ insertWith key value update (tree avl₁) with Bounded.insertWith key value upda
 
 insert : (key : Key) -> V key -> Tree -> Tree
 insert key value = insertWith key value const
+
+fromList : List (Σ Key V) -> Tree
+fromList = foldr (λ k×v → insert (proj₁ k×v) (proj₂ k×v)) empty

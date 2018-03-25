@@ -7,8 +7,8 @@ open import Relation.Binary.PropositionalEquality using
 open import Level using (_⊔_)
 open import Data.Nat using (ℕ; suc; _+_)
 open import Data.Maybe using (Maybe)
-open import Data.Product
 open Maybe
+open import Data.Product using (_×_; _,_)
 
 module AVL
   {k r v} (Key : Set k) {_<_ : Rel Key r}
@@ -74,14 +74,12 @@ balance-leftⁱ
     -> AVL [ key ] r-bound h-right
     -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
-balance-leftⁱ key₁ value₁
-  (+0 left₁) right₁ balance
-  = +0 (Node key₁ value₁ left₁ right₁ balance)
-balance-leftⁱ key₁ value₁
-  (+1 (Node key₂ value₂ left₂ right₂ ↦l)) right₁ ↦l
+balance-leftⁱ key₁ value₁ (+0 left₁) right₁ balance = +0 (Node key₁ value₁ left₁ right₁ balance)
+balance-leftⁱ key₁ value₁ (+1 left) right ↦r = +0 (Node key₁ value₁ left right ↦b)
+balance-leftⁱ key₁ value₁ (+1 left) right ↦b = +1 (Node key₁ value₁ left right ↦l)
+balance-leftⁱ key₁ value₁ (+1 (Node key₂ value₂ left₂ right₂ ↦l)) right₁ ↦l
   = +0 (Node key₂ value₂ left₂ (Node key₁ value₁ right₂ right₁ ↦b) ↦b)
-balance-leftⁱ key₁ value₁
-  (+1 (Node key₂ value₂ left₂ right₂ ↦b)) right₁ ↦l
+balance-leftⁱ key₁ value₁ (+1 (Node key₂ value₂ left₂ right₂ ↦b)) right₁ ↦l
   = +1 (Node key₂ value₂ left₂ (Node key₁ value₁ right₂ right₁ ↦l) ↦r)
 balance-leftⁱ key₁ value₁
   (+1 (Node key₂ value₂ left₂ (Node key₃ value₃ left₃ right₃ bal) ↦r)) right₁ ↦l
@@ -89,10 +87,6 @@ balance-leftⁱ key₁ value₁
          (Node key₂ value₂ left₂ left₃ (max[h,l]↦h bal))
          (Node key₁ value₁ right₃ right₁ (max[r,h]↦h bal))
          ↦b)
-balance-leftⁱ key₁ value₁
-  (+1 left) right ↦b = +1 (Node key₁ value₁ left right ↦l)
-balance-leftⁱ key₁ value₁
-  (+1 left) right ↦r = +0 (Node key₁ value₁ left right ↦b)
 
 balance-rightⁱ
   : ∀ {h-left h-right h}
@@ -103,7 +97,29 @@ balance-rightⁱ
     -> Insert [ key ] r-bound h-right
     -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
-balance-rightⁱ = undefined
+balance-rightⁱ key₁ value₁ left₁ (+0 right₁) balance = +0 (Node key₁ value₁ left₁ right₁ balance)
+balance-rightⁱ key₁ value₁ left₁ (+1 right₁) ↦l = +0 (Node key₁ value₁ left₁ right₁ ↦b)
+balance-rightⁱ key₁ value₁ left₁ (+1 right₁) ↦b = +1 (Node key₁ value₁ left₁ right₁ ↦r)
+balance-rightⁱ key₁ value₁ left₁ (+1 (Node key₂ value₂ left₂ right₂ ↦r)) ↦r
+  = +0 (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ ↦b) right₂ ↦b)
+balance-rightⁱ key₁ value₁ left₁ (+1 (Node key₂ value₂ left₂ right₂ ↦b)) ↦r
+  = +1 (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ ↦r) right₂ ↦l)
+--       1
+--      / \
+--     /   \
+--    L1   2
+--        / \
+--       /   \
+--      3    R2
+--     / \
+--    /   \
+--    L3  R3
+balance-rightⁱ key₁ value₁ left₁
+  (+1 (Node key₂ value₂ (Node key₃ value₃ left₃ right₃ bal) right₂ ↦l)) ↦r
+  = +0 (Node key₃ value₃
+         (Node key₁ value₁ left₁ left₃ (max[h,l]↦h bal))
+         (Node key₂ value₂ right₃ right₂ (max[r,h]↦h bal))
+         ↦b)
 
 insertWith
   : ∀ {h} {l-bound r-bound}
@@ -126,4 +142,3 @@ insertWith key₁ value₁ update
 ... | tri> _ _ key₂<key₁
     = balance-rightⁱ key₂ value₂ left₁ right₂ balance
     where right₂ = insertWith key₁ value₁ update ([ key₂<key₁ ] <×< key<r-bound) right₁
-
