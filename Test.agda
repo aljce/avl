@@ -44,5 +44,11 @@ module Dependent where
   lookup-unit₂ : lookup 4 test-tree₁ ≡ nothing
   lookup-unit₂ = refl
 
+  test-tree₂ : Tree
+  test-tree₂ = delete 3 test-tree₁
+  
+  lookup-unit₃ : lookup 3 test-tree₂ ≡ nothing
+  lookup-unit₃ = refl
+
 
 
