@@ -62,7 +62,7 @@ singleton key value bst = Node key value (Leaf (lower bst)) (Leaf (upper bst)) �
 
 lookup : ∀ {h} {l-bound r-bound} -> (key : Key) -> AVL l-bound r-bound h -> Maybe (V key)
 lookup key₁ (Leaf _) = nothing
-lookup key₁ (Node key₂ value left right balance) with compare key₁ key₂
+lookup key₁ (Node key₂ value left right _) with compare key₁ key₂
 ... | tri< _ _ _ = lookup key₁ left
 ... | tri≈ _ key₁≡key₂ _ = just (subst V (sym key₁≡key₂) value)
 ... | tri> _ _ _ = lookup key₁ right
@@ -70,9 +70,6 @@ lookup key₁ (Node key₂ value left right balance) with compare key₁ key₂
 data Insert (l-bound r-bound : Bound) (height : ℕ) : Set (k ⊔ v ⊔ r) where
   +zero : AVL l-bound r-bound height       -> Insert l-bound r-bound height
   +one  : AVL l-bound r-bound (suc height) -> Insert l-bound r-bound height
-
-postulate
-  undefined : ∀ {a} {A : Set a} -> A
 
 balance-leftⁱ
   : ∀ {h-left h-right h}
@@ -83,7 +80,7 @@ balance-leftⁱ
     -> AVL [ key ] r-bound h-right
     -> max (h-left , h-right) ↦ h
     -> Insert l-bound r-bound (suc h)
-balance-leftⁱ key₁ value₁ (+zero left₁) right₁ balance = +zero (Node key₁ value₁ left₁ right₁ balance)
+balance-leftⁱ key₁ value₁ (+zero left₁) right₁ bal = +zero (Node key₁ value₁ left₁ right₁ bal)
 balance-leftⁱ key₁ value₁ (+one left) right ↦r = +zero (Node key₁ value₁ left right ↦b)
 balance-leftⁱ key₁ value₁ (+one left) right ↦b = +one (Node key₁ value₁ left right ↦l)
 balance-leftⁱ key₁ value₁ (+one (Node key₂ value₂ left₂ right₂ ↦l)) right₁ ↦l
@@ -142,19 +139,27 @@ insertWith key₁ value₁ update
   l-bound<key<r-bound (Leaf l-bound<r-bound)
   = +one (singleton key₁ value₁ l-bound<key<r-bound)
 insertWith key₁ value₁ update
-  (l-bound<key <×< key<r-bound) (Node key₂ value₂ left₁ right₁ balance) with compare key₁ key₂
+  (l-bound<key <×< key<r-bound) (Node key₂ value₂ left₁ right₁ bal) with compare key₁ key₂
 ... | tri< key₁<key₂ _ _
-    = balance-leftⁱ key₂ value₂ left₂ right₁ balance
+    = balance-leftⁱ key₂ value₂ left₂ right₁ bal
     where left₂ = insertWith key₁ value₁ update (l-bound<key <×< [ key₁<key₂ ]) left₁
 ... | tri≈ _ key₁≡key₂ _ rewrite sym key₁≡key₂
-    = +zero (Node key₁ (update value₁ value₂) left₁ right₁ balance)
+    = +zero (Node key₁ (update value₁ value₂) left₁ right₁ bal)
 ... | tri> _ _ key₂<key₁
-    = balance-rightⁱ key₂ value₂ left₁ right₂ balance
+    = balance-rightⁱ key₂ value₂ left₁ right₂ bal
     where right₂ = insertWith key₁ value₁ update ([ key₂<key₁ ] <×< key<r-bound) right₁
 
 data Delete (l-bound r-bound : Bound) : (height : ℕ) -> Set (k ⊔ v ⊔ r) where
   -zero : ∀ {h} -> AVL l-bound r-bound h -> Delete l-bound r-bound h
   -one  : ∀ {h} -> AVL l-bound r-bound h -> Delete l-bound r-bound (suc h)
+
+delete⇒insert : ∀ {h} {l-bound r-bound} -> Delete l-bound r-bound (suc h) -> Insert l-bound r-bound h
+delete⇒insert (-zero avl) = +one avl
+delete⇒insert (-one  avl) = +zero avl
+
+insert⇒delete : ∀ {h} {l-bound r-bound} -> Insert l-bound r-bound h -> Delete l-bound r-bound (suc h)
+insert⇒delete (+zero avl) = -one avl
+insert⇒delete (+one  avl) = -zero avl
 
 balance-leftᵈ
   : ∀ {h-left h-right h}
@@ -165,22 +170,16 @@ balance-leftᵈ
     -> AVL [ key ] r-bound h-right
     -> max (h-left , h-right) ↦ h
     -> Delete l-bound r-bound (suc h)
-balance-leftᵈ key₁ value₁ (-zero left₁) right₁ balance
-  = -zero (Node key₁ value₁ left₁ right₁ balance)
-balance-leftᵈ key₁ value₁ (-one left₁) right₁ ↦l
+balance-leftᵈ {zero} key₁ value₁ (-zero left₁) right₁ bal
+  = -zero (Node key₁ value₁ left₁ right₁ bal)
+balance-leftᵈ {suc _} key₁ value₁ (-zero left₁) right₁ bal
+  = -zero (Node key₁ value₁ left₁ right₁ bal)
+balance-leftᵈ {suc _} key₁ value₁ (-one left₁) right₁ ↦l
   = -one (Node key₁ value₁ left₁ right₁ ↦b)
-balance-leftᵈ key₁ value₁ (-one left₁) right₁ ↦b
+balance-leftᵈ {suc _} key₁ value₁ (-one left₁) right₁ ↦b
   = -zero (Node key₁ value₁ left₁ right₁ ↦r)
-balance-leftᵈ key₁ value₁ (-one left₁) (Node key₂ value₂ left₂ right₂ ↦r) ↦r
-  = -one (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ ↦b) right₂ ↦b)
-balance-leftᵈ key₁ value₁ (-one left₁) (Node key₂ value₂ left₂ right₂ ↦b) ↦r
-  = -zero (Node key₂ value₂ (Node key₁ value₁ left₁ left₂ ↦r) right₂ ↦l)
-balance-leftᵈ key₁ value₁
-  (-one left₁) (Node key₂ value₂ (Node key₃ value₃ left₃ right₃ bal) right₂ ↦l) ↦r
-  = -one (Node key₃ value₃
-           (Node key₁ value₁ left₁ left₃ (max[h,l]↦h bal))
-           (Node key₂ value₂ right₃ right₂ (max[r,h]↦h bal))
-           ↦b)
+balance-leftᵈ {suc _} key₁ value₁ (-one left₁) right₁ ↦r
+  = insert⇒delete (balance-rightⁱ key₁ value₁ left₁ (+one right₁) ↦r)
 
 balance-rightᵈ
   : ∀ {h-left h-right h}
@@ -191,18 +190,16 @@ balance-rightᵈ
     -> Delete [ key ] r-bound h-right
     -> max (h-left , h-right) ↦ h
     -> Delete l-bound r-bound (suc h)
-balance-rightᵈ {h-right = zero} key₁ value₁ left₁ (-zero right₁) balance
-  = -zero (Node key₁ value₁ left₁ right₁ balance)
-balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-zero right₁) balance
-  = -zero (Node key₁ value₁ left₁ right₁ balance)
-balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-one right₁) ↦l
-  with balance-leftⁱ key₁ value₁ (+one left₁) right₁ ↦l
-... | +zero res = -one  res
-... | +one res  = -zero res
-balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-one right₁) ↦b
-  = -zero (Node key₁ value₁ left₁ right₁ ↦l)
+balance-rightᵈ {h-right = zero} key₁ value₁ left₁ (-zero right₁) bal
+  = -zero (Node key₁ value₁ left₁ right₁ bal)
+balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-zero right₁) bal
+  = -zero (Node key₁ value₁ left₁ right₁ bal)
 balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-one right₁) ↦r
   = -one (Node key₁ value₁ left₁ right₁ ↦b)
+balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-one right₁) ↦b
+  = -zero (Node key₁ value₁ left₁ right₁ ↦l)
+balance-rightᵈ {h-right = suc _} key₁ value₁ left₁ (-one right₁) ↦l
+  = insert⇒delete (balance-leftⁱ key₁ value₁ (+one left₁) right₁ ↦l)
 
 decrease-bound
   : ∀ {h} {l-bound m-bound r-bound}
@@ -211,8 +208,36 @@ decrease-bound
    -> AVL l-bound r-bound h
 decrease-bound l-bound<m-bound (Leaf m-bound<r-bound)
   = Leaf (<ᵇ-transitive l-bound<m-bound m-bound<r-bound)
-decrease-bound l-bound<m-bound (Node key value left right balance)
-  = Node key value (decrease-bound l-bound<m-bound left) right balance
+decrease-bound l-bound<m-bound (Node key value left right bal)
+  = Node key value (decrease-bound l-bound<m-bound left) right bal
+
+increase-bound
+  : ∀ {h} {l-bound m-bound r-bound}
+  -> m-bound <ᵇ r-bound
+  -> AVL l-bound m-bound h
+  -> AVL l-bound r-bound h
+increase-bound m-bound<r-bound (Leaf l-bound<m-bound)
+  = Leaf (<ᵇ-transitive l-bound<m-bound m-bound<r-bound)
+increase-bound m-bound<r-bound (Node key value left right bal)
+  = Node key value left (increase-bound m-bound<r-bound right) bal
+
+record Minimum (l-bound r-bound : Bound) (height : ℕ) : Set (k ⊔ v ⊔ r) where
+  constructor Min
+  field
+    key         : Key
+    value       : V key
+    l-bound<key : l-bound <ᵇ [ key ]
+    rest        : Insert [ key ] r-bound height
+
+minimum : ∀ {h} {l-bound r-bound} -> AVL l-bound r-bound (suc h) -> Minimum l-bound r-bound h
+minimum (Node key₁ value₁ (Leaf l-bound<key₁) right₁ ↦b)
+  = Min key₁ value₁ l-bound<key₁ (+zero right₁) 
+minimum (Node key₁ value₁ (Leaf l-bound<key₁) right₁ ↦r)
+  = Min key₁ value₁ l-bound<key₁ (+zero right₁)
+minimum (Node {h-left = suc _} key₁ value₁ left₁ right₁ bal)
+  with minimum left₁
+... | Min key₂ value₂ l-bound<key₂ rest = Min key₂ value₂ l-bound<key₂ balanced
+    where balanced = delete⇒insert (balance-leftᵈ key₁ value₁ (insert⇒delete rest) right₁ bal)
 
 balanceᵈ
    : ∀ {h-left h-right h}
@@ -221,10 +246,11 @@ balanceᵈ
     -> AVL m-bound r-bound h-right
     -> max (h-left , h-right) ↦ h
     -> Delete l-bound r-bound (suc h)
-balanceᵈ (Leaf l-bound<m-bound) right ↦b = -one (decrease-bound l-bound<m-bound right)
-balanceᵈ (Leaf l-bound<m-bound) right ↦r = -one (decrease-bound l-bound<m-bound right)
-balanceᵈ (Node key value left left₁ balance₁) right balance
-  = undefined
+balanceᵈ left₁ (Leaf m-bound<r-bound) ↦l = -one (increase-bound m-bound<r-bound left₁)
+balanceᵈ left₁ (Leaf m-bound<r-bound) ↦b = -one (increase-bound m-bound<r-bound left₁)
+balanceᵈ {h-right = suc _} left₁ right₁ bal with minimum right₁
+... | Min min-key min-value l-bound<min-key rest
+    = balance-rightᵈ min-key min-value (increase-bound l-bound<min-key left₁) (insert⇒delete rest) bal
 
 delete
   : ∀ {h} {l-bound r-bound}
@@ -232,11 +258,11 @@ delete
    -> AVL l-bound r-bound h
    -> Delete l-bound r-bound h
 delete key (Leaf l-bound<r-bound) = -zero (Leaf l-bound<r-bound)
-delete key (Node key₁ value₁ left₁ right₁ balance) with compare key key₁
-... | tri< _ _ _ = balance-leftᵈ key₁ value₁ left₂ right₁ balance
+delete key (Node key₁ value₁ left₁ right₁ bal) with compare key key₁
+... | tri< _ _ _ = balance-leftᵈ key₁ value₁ left₂ right₁ bal
     where left₂  = delete key left₁
-... | tri≈ _ _ _ = balanceᵈ left₁ right₁ balance
-... | tri> _ _ _ = balance-rightᵈ key₁ value₁ left₁ right₂ balance
+... | tri≈ _ _ _ = balanceᵈ left₁ right₁ bal
+... | tri> _ _ _ = balance-rightᵈ key₁ value₁ left₁ right₂ bal
     where right₂ = delete key right₁
 
 
